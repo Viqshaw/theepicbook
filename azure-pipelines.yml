@@ -69,7 +69,7 @@ stages:
       - job: Prepare
         displayName: "Install Ansible and stage SSH key"
         pool:
-          vmImage: ubuntu-latest
+          name: StaticSiteAgentPool
         steps:
           - checkout: self
             displayName: "Checkout repository"
@@ -134,7 +134,7 @@ stages:
       - job: Validate
         displayName: "Syntax checks and SSH connectivity"
         pool:
-          vmImage: ubuntu-latest
+          name: StaticSiteAgentPool
         steps:
           # Fresh agent: repo must be checked out again.
           - checkout: self
@@ -367,7 +367,7 @@ stages:
         displayName: "Run site.yml"
         timeoutInMinutes: "60"
         pool:
-          vmImage: ubuntu-latest
+          name: StaticSiteAgentPool
         steps:
           # Fresh agent: repo must be checked out again.
           - checkout: self
@@ -594,7 +594,7 @@ stages:
       - job: Verify
         displayName: "Confirm play recap and summarize"
         pool:
-          vmImage: ubuntu-latest
+          name: StaticSiteAgentPool
         steps:
           # Needed to read the inventory (host list and frontend IP). Nothing from the
           # repo is executed.
