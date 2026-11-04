@@ -1,16 +1,16 @@
 EpicBook CI/CD Pipeline Health Report
 =====================================
 Prepared by:    tonye Bagshaw
-Generated (UTC): 2026-11-04 21:59:15
+Generated (UTC): 2026-11-04 21:39:53
 Organization:   https://dev.azure.com/youngarneyikuroaa
 Project:        EpicBook-Deployment
 
-OVERALL HEALTH: UNHEALTHY - one or more pipeline failures
+OVERALL HEALTH: HEALTHY - both latest completed runs succeeded
 
 Pipeline Run Metadata
 ---------------------
 Infrastructure | Epicbook-infra-pipeline | ID 6 | Run ID 18 (20261103.2) | Branch refs/heads/main | Status completed | Result succeeded | Completed 2026-11-03T00:55:10.1507816Z
-Application | Epicbook-App-Pipeline | ID 5 | Run ID 102 (20261104.50) | Branch refs/heads/drill/pipeline-failure | Status completed | Result failed | Completed 2026-11-04T21:53:06.1195572Z
+Application | Epicbook-App-Pipeline | ID 5 | Run ID 101 (20261104.49) | Branch refs/heads/main | Status completed | Result succeeded | Completed 2026-11-04T18:39:44.2494958Z
 
 Checks
 ------
@@ -18,20 +18,16 @@ Checks
     Epicbook-infra-pipeline: run 18 succeeded.
 [PASS] Infrastructure — Log retrieval
     Sanitized step logs for run 18 saved to infra-last-run.log.
-[FAIL] Application — Run result
-    Epicbook-App-Pipeline: run 102 failed.
+[PASS] Application — Run result
+    Epicbook-App-Pipeline: run 101 succeeded.
 [PASS] Application — Log retrieval
-    Sanitized step logs for run 102 saved to app-last-run.log.
-[FAIL] Application — Ansible, Nginx, or application deployment failure
-    2 matching line(s). Evidence:
-    3377:2026-11-04T21:52:53.3109081Z fatal: [backend_server]: FAILED! => {"changed": false, "failed_when_result": true, "name": "epicbook", "status": {"ActiveEnterTimestamp": "Wed 2026-11-04 21:52:49 UTC", "ActiveEnterTimestampMonotonic": "169163039399", "ActiveExitTimestamp": "Wed 2026-11-04 21:52:49 
-    3860:2026-11-04T21:52:53.3109555Z fatal: [backend_server]: FAILED! => {"changed": false, "failed_when_result": true, "name": "epicbook", "status": {"ActiveEnterTimestamp": "Wed 2026-11-04 21:52:49 UTC", "ActiveEnterTimestampMonotonic": "169163039399", "ActiveExitTimestamp": "Wed 2026-11-04 21:52:49 
+    Sanitized step logs for run 101 saved to app-last-run.log.
 
 Summary
 -------
-PASS:  3
+PASS:  4
 WARN:  0
-FAIL:  2
+FAIL:  0
 ERROR: 0
 
 Exit codes: 0 healthy | 1 warning/incomplete | 2 failure | 3 config/auth/API/log error
