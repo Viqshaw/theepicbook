@@ -257,6 +257,29 @@ stages:
                 --exclude-dir=.venv || true
             displayName: "Verify actual pipeline inventory"
 
+          - script: |
+              echo "===== PIPELINE USER ====="
+              whoami
+              echo "$HOME"
+
+              echo "===== SSH DIRECTORY ====="
+              ls -ld /home/vsts /home/vsts/.ssh || true
+
+              echo "===== SSH KEY ====="
+              ls -l /home/vsts/.ssh/id_ed25519 || true
+
+              echo "===== TEST KEY ACCESS ====="
+              test -r /home/vsts/.ssh/id_ed25519 \
+                && echo "KEY IS READABLE" \
+                || echo "KEY IS NOT READABLE"
+
+              echo "===== SSH TEST ====="
+              ssh -i /home/vsts/.ssh/id_ed25519 \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=no \
+                ubuntu@184.195.165.141 "hostname"
+            displayName: "Verify pipeline SSH key"
+
           # Real SSH connectivity test to every host in the inventory. This is a hard
           # gate: any unreachable or failed host fails the stage.
           #
