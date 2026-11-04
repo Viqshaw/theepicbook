@@ -40,6 +40,7 @@
     archive: true
     compress: true
     use_ssh_args: true
+    rsync_path: "sudo rsync"
     rsync_opts:
       - "--exclude=.git"
       - "--exclude=ansible"
