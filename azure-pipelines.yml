@@ -457,6 +457,30 @@ stages:
               done < <(awk '/ansible_host=/ { for (i = 1; i <= NF; i++) if ($i ~ /^ansible_host=/) { sub(/^ansible_host=/, "", $i); print $1, $i } }' "$INV")
             displayName: "Pin SSH host keys (bastion first, then the rest)"
 
+          # The synchronize task (code deploy) runs rsync from this agent straight to
+          # the backend's private IP, so it does not get the bastion ProxyCommand from
+          # ansible_ssh_common_args. Route it through the bastion with ~/.ssh/config,
+          # which rsync's ssh reads. The key is the staged temp copy, not ~/.ssh.
+          - script: |
+              set -euo pipefail
+              mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+              cat > "$HOME/.ssh/config" <<EOF
+              Host 184.195.165.141
+                User ubuntu
+                IdentityFile $(SSH_KEY_PATH)
+                IdentitiesOnly yes
+                StrictHostKeyChecking no
+
+              Host 10.20.2.133
+                User ubuntu
+                IdentityFile $(SSH_KEY_PATH)
+                IdentitiesOnly yes
+                ProxyJump ubuntu@184.195.165.141
+                StrictHostKeyChecking no
+              EOF
+              chmod 600 "$HOME/.ssh/config"
+            displayName: "Write SSH config for backend via bastion (rsync)"
+
           - script: |
               echo "===== PIPELINE SSH ENVIRONMENT ====="
               echo "User: $(whoami)"
