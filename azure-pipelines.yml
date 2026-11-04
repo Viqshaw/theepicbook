@@ -280,6 +280,37 @@ stages:
                 ubuntu@184.195.165.141 "hostname"
             displayName: "Verify pipeline SSH key"
 
+          - script: |
+              echo "===== MACHINE IDENTITY ====="
+              hostname
+              hostname -f
+              whoami
+              id
+              echo "HOME=$HOME"
+
+              echo "===== AGENT IDENTITY ====="
+              echo "Agent name: $AGENT_NAME"
+              echo "Machine name: $AGENT_MACHINE"
+              echo "Agent directory: $AGENT_HOME"
+
+              echo "===== KEY CHECK ====="
+              ls -ld /home/vsts /home/vsts/.ssh
+              ls -l /home/vsts/.ssh/id_ed25519 || true
+
+              if test -r /home/vsts/.ssh/id_ed25519; then
+                echo "PRIVATE KEY AVAILABLE"
+              else
+                echo "PRIVATE KEY NOT AVAILABLE"
+              fi
+
+              echo "===== MOUNT INFORMATION ====="
+              findmnt /home/vsts || true
+            displayName: "Identify actual pipeline execution environment"
+            env:
+              AGENT_NAME: $(Agent.Name)
+              AGENT_MACHINE: $(Agent.MachineName)
+              AGENT_HOME: $(Agent.HomeDirectory)
+
           # Real SSH connectivity test to every host in the inventory. This is a hard
           # gate: any unreachable or failed host fails the stage.
           #
