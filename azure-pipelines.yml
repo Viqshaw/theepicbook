@@ -239,6 +239,24 @@ stages:
 
             displayName: "Inspect pipeline SSH environment"
 
+          - script: |
+              echo "===== CURRENT WORKING DIRECTORY ====="
+              pwd
+
+              echo "===== INVENTORY FILE ====="
+              cat ansible/inventory/hosts.ini
+
+              echo "===== RESOLVED BACKEND VARIABLES ====="
+              ansible-inventory \
+                -i ansible/inventory/hosts.ini \
+                --host backend_server
+
+              echo "===== SEARCH FOR OLD KEY ====="
+              grep -Rni "/home/tonye/.ssh/id_ed25519" \
+                . --exclude-dir=.git \
+                --exclude-dir=.venv || true
+            displayName: "Verify actual pipeline inventory"
+
           # Real SSH connectivity test to every host in the inventory. This is a hard
           # gate: any unreachable or failed host fails the stage.
           #
