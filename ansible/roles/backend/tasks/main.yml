@@ -33,6 +33,25 @@
     group: ubuntu
     mode: "0755"
 
+- name: Diagnose SSH configuration used by delegated rsync
+  ansible.builtin.shell: |
+    echo "Execution user:"
+    whoami
+    echo "HOME:"
+    echo "$HOME"
+    echo "SSH config:"
+    ls -l "$HOME/.ssh/config"
+    echo "Effective SSH routing:"
+    ssh -G -S none ubuntu@10.20.2.133 | grep -Ei '^(hostname|user|identityfile|proxyjump|proxycommand) '
+  delegate_to: localhost
+  become: false
+  register: ssh_diagnostic
+  changed_when: false
+
+- name: Display SSH diagnostic
+  ansible.builtin.debug:
+    var: ssh_diagnostic.stdout_lines
+
 - name: Deploy EpicBook application code
   ansible.posix.synchronize:
     src: "{{ playbook_dir }}/../"
