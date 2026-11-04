@@ -35,6 +35,7 @@
 
 - name: Diagnose SSH configuration used by delegated rsync
   ansible.builtin.shell: |
+    set -o pipefail
     echo "Execution user:"
     whoami
     echo "HOME:"
@@ -45,12 +46,12 @@
     ssh -G -S none ubuntu@10.20.2.133 | grep -Ei '^(hostname|user|identityfile|proxyjump|proxycommand) '
   delegate_to: localhost
   become: false
-  register: ssh_diagnostic
+  register: backend_ssh_diagnostic
   changed_when: false
 
 - name: Display SSH diagnostic
   ansible.builtin.debug:
-    var: ssh_diagnostic.stdout_lines
+    var: backend_ssh_diagnostic.stdout_lines
 
 - name: Deploy EpicBook application code
   ansible.posix.synchronize:
