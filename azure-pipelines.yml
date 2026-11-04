@@ -479,6 +479,11 @@ stages:
                 StrictHostKeyChecking no
               EOF
               chmod 600 "$HOME/.ssh/config"
+
+              # Show what ssh resolves for the backend, so the log proves the
+              # ProxyJump is in effect for rsync's ssh.
+              echo "===== SSH RESOLUTION FOR BACKEND ====="
+              ssh -G 10.20.2.133 | grep -E '^(hostname|user|proxyjump|proxycommand|identityfile) ' || true
             displayName: "Write SSH config for backend via bastion (rsync)"
 
           - script: |
