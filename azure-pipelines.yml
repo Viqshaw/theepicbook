@@ -220,6 +220,25 @@ stages:
               done < <(awk '/ansible_host=/ { for (i = 1; i <= NF; i++) if ($i ~ /^ansible_host=/) { sub(/^ansible_host=/, "", $i); print $1, $i } }' "$INV")
             displayName: "Pin SSH host keys (bastion first, then the rest)"
 
+          - script: |
+              echo "===== PIPELINE IDENTITY ====="
+              whoami
+              echo "$HOME"
+
+              echo "===== SSH KEY ====="
+              ls -l "$HOME/.ssh/id_ed25519"
+
+              echo "===== SSH CONFIG ====="
+              cat "$HOME/.ssh/config" || true
+
+              echo "===== SSH AGENT ====="
+              ssh-add -l || true
+
+              echo "===== ANSIBLE CONFIG ====="
+              ansible-config dump --only-changed
+
+            displayName: "Inspect pipeline SSH environment"
+
           # Real SSH connectivity test to every host in the inventory. This is a hard
           # gate: any unreachable or failed host fails the stage.
           #
@@ -329,9 +348,9 @@ stages:
               nc -zv -w 5 184.195.165.141 22
 
               echo "Backend connectivity through bastion:"
-              ssh -i /home/tonye/.ssh/id_ed25519 \
+              ssh -i ~/.ssh/id_ed25519 \
                 -o IdentitiesOnly=yes \
-                -o "ProxyCommand=ssh -i /home/ubuntu/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p ubuntu@184.195.165.141" \
+                -o "ProxyCommand=ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p ubuntu@184.195.165.141" \
                 ubuntu@10.20.2.133 "hostname"
             displayName: "Verify SSH connectivity"
 
