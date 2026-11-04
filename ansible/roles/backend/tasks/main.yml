@@ -46,6 +46,7 @@
       - "--exclude=ansible"
       - "--exclude=node_modules"
   delegate_to: localhost
+  become: false
 
 - name: Install Node.js dependencies
   ansible.builtin.command: npm ci --production
