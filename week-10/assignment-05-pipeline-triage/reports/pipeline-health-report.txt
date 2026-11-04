@@ -1,0 +1,34 @@
+EpicBook CI/CD Pipeline Health Report
+=====================================
+Prepared by:    tonye Bagshaw
+Generated (UTC): 2026-11-04 21:39:53
+Organization:   https://dev.azure.com/youngarneyikuroaa
+Project:        EpicBook-Deployment
+
+OVERALL HEALTH: HEALTHY - both latest completed runs succeeded
+
+Pipeline Run Metadata
+---------------------
+Infrastructure | Epicbook-infra-pipeline | ID 6 | Run ID 18 (20261103.2) | Branch refs/heads/main | Status completed | Result succeeded | Completed 2026-11-03T00:55:10.1507816Z
+Application | Epicbook-App-Pipeline | ID 5 | Run ID 101 (20261104.49) | Branch refs/heads/main | Status completed | Result succeeded | Completed 2026-11-04T18:39:44.2494958Z
+
+Checks
+------
+[PASS] Infrastructure — Run result
+    Epicbook-infra-pipeline: run 18 succeeded.
+[PASS] Infrastructure — Log retrieval
+    Sanitized step logs for run 18 saved to infra-last-run.log.
+[PASS] Application — Run result
+    Epicbook-App-Pipeline: run 101 succeeded.
+[PASS] Application — Log retrieval
+    Sanitized step logs for run 101 saved to app-last-run.log.
+
+Summary
+-------
+PASS:  4
+WARN:  0
+FAIL:  0
+ERROR: 0
+
+Exit codes: 0 healthy | 1 warning/incomplete | 2 failure | 3 config/auth/API/log error
+Note: This report is read-only triage output. No recovery action has been applied.
