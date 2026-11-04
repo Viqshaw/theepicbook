@@ -342,7 +342,7 @@ stages:
               echo "$HOME"
 
               echo "SSH key:"
-              ls -l /home/ubuntu/.ssh/id_ed25519
+              ls -l $HOME/.ssh/id_ed25519
 
               echo "Bastion connectivity:"
               nc -zv -w 5 184.195.165.141 22
