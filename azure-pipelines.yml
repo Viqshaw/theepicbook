@@ -241,14 +241,14 @@ stages:
               }
 
               set +e
-              ansible -i "$(ansibleInventory)" all -m ping \
+              ansible -vvv -i "$(ansibleInventory)" all -m ping \
                 --private-key "$(SSH_KEY_PATH)" \
                 -e "ansible_ssh_private_key_file=$(SSH_KEY_PATH)"
               RC=$?
               set -e
 
               if [ "$RC" -ne 0 ]; then
-                echo "##[error]SSH connectivity check FAILED (ansible exit code $RC). Ansible exit 4 means a host was unreachable and 2 means a host failed. Review the UNREACHABLE/FAILED lines above. backend_server is reached through bastion-host, so check both."
+                echo "##[error]SSH connectivity check FAILED (ansible exit code $RC). Ansible exit 4 means a host was unreachable and 2 means a host failed. Review the UNREACHABLE/FAILED lines above. backend_server is reached through bastion_host, so check both."
                 exit "$RC"
               fi
               echo "Every inventory host answered the ping module."
