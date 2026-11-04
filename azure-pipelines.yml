@@ -220,51 +220,6 @@ stages:
               done < <(awk '/ansible_host=/ { for (i = 1; i <= NF; i++) if ($i ~ /^ansible_host=/) { sub(/^ansible_host=/, "", $i); print $1, $i } }' "$INV")
             displayName: "Pin SSH host keys (bastion first, then the rest)"
 
-          - script: |
-              echo "===== PIPELINE IDENTITY ====="
-              whoami
-              echo "$HOME"
-
-              echo "===== SSH KEY ====="
-              ls -l "$HOME/.ssh/id_ed25519"
-
-              echo "===== SSH CONFIG ====="
-              cat "$HOME/.ssh/config" || true
-
-              echo "===== SSH AGENT ====="
-              ssh-add -l || true
-
-              echo "===== ANSIBLE CONFIG ====="
-              ansible-config dump --only-changed
-
-            displayName: "Inspect pipeline SSH environment"
-
-          - script: |
-              echo "===== MACHINE IDENTITY ====="
-              hostname
-              hostname -f
-              whoami
-              id
-              echo "HOME=$HOME"
-
-              echo "===== AGENT IDENTITY ====="
-              echo "Agent name: $AGENT_NAME"
-              echo "Machine name: $AGENT_MACHINE"
-              echo "Agent directory: $AGENT_HOME"
-
-              echo "===== KEY CHECK ====="
-              ls -ld /home/vsts /home/vsts/.ssh
-              ls -l /home/vsts/.ssh/id_ed25519 || true
-
-              if test -r /home/vsts/.ssh/id_ed25519; then
-                echo "PRIVATE KEY AVAILABLE"
-              else
-                echo "PRIVATE KEY NOT AVAILABLE"
-              fi
-
-              echo "===== MOUNT INFORMATION ====="
-              findmnt /home/vsts || true
-            displayName: "Identify actual pipeline execution environment"
             env:
               AGENT_NAME: $(Agent.Name)
               AGENT_MACHINE: $(Agent.MachineName)
@@ -287,29 +242,6 @@ stages:
                 . --exclude-dir=.git \
                 --exclude-dir=.venv || true
             displayName: "Verify actual pipeline inventory"
-
-          - script: |
-              echo "===== PIPELINE USER ====="
-              whoami
-              echo "$HOME"
-
-              echo "===== SSH DIRECTORY ====="
-              ls -ld /home/vsts /home/vsts/.ssh || true
-
-              echo "===== SSH KEY ====="
-              ls -l /home/vsts/.ssh/id_ed25519 || true
-
-              echo "===== TEST KEY ACCESS ====="
-              test -r /home/vsts/.ssh/id_ed25519 \
-                && echo "KEY IS READABLE" \
-                || echo "KEY IS NOT READABLE"
-
-              echo "===== SSH TEST ====="
-              ssh -i /home/vsts/.ssh/id_ed25519 \
-                -o IdentitiesOnly=yes \
-                -o StrictHostKeyChecking=no \
-                ubuntu@184.195.165.141 "hostname"
-            displayName: "Verify pipeline SSH key"
 
           # Real SSH connectivity test to every host in the inventory. This is a hard
           # gate: any unreachable or failed host fails the stage.
@@ -407,24 +339,31 @@ stages:
             displayName: "Stage SSH key at a temp path (chmod 600)"
 
           - script: |
+              set -euo pipefail
+
               echo "Agent user:"
               whoami
 
-              echo "Agent home:"
-              echo "$HOME"
-
               echo "SSH key:"
-              ls -l $HOME/.ssh/id_ed25519
+              test -r "$(SSH_KEY_PATH)"
+              echo "Secure File key is available"
 
               echo "Bastion connectivity:"
-              nc -zv -w 5 184.195.165.141 22
+              ssh -F /dev/null \
+                -i "$(SSH_KEY_PATH)" \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=no \
+                ubuntu@184.195.165.141 hostname
 
               echo "Backend connectivity through bastion:"
-              ssh -i ~/.ssh/id_ed25519 \
+              ssh -F /dev/null \
+                -i "$(SSH_KEY_PATH)" \
                 -o IdentitiesOnly=yes \
-                -o "ProxyCommand=ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p ubuntu@184.195.165.141" \
-                ubuntu@10.20.2.133 "hostname"
+                -o StrictHostKeyChecking=no \
+                -o "ProxyCommand=ssh -F /dev/null -i $(SSH_KEY_PATH) -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -W %h:%p ubuntu@184.195.165.141" \
+                ubuntu@10.20.2.133 hostname
             displayName: "Verify SSH connectivity"
+
 
           - script: |
               sudo apt-get update
@@ -457,69 +396,36 @@ stages:
               done < <(awk '/ansible_host=/ { for (i = 1; i <= NF; i++) if ($i ~ /^ansible_host=/) { sub(/^ansible_host=/, "", $i); print $1, $i } }' "$INV")
             displayName: "Pin SSH host keys (bastion first, then the rest)"
 
-          # The synchronize task (code deploy) runs rsync from this agent straight to
-          # the backend's private IP, so it does not get the bastion ProxyCommand from
-          # ansible_ssh_common_args. Route it through the bastion with ~/.ssh/config,
-          # which rsync's ssh reads. The key is the staged temp copy, not ~/.ssh.
+          # rsync (used by the synchronize task) runs from this agent straight to the
+          # backend's private IP, so it needs its own ssh configuration.
           - script: |
               set -euo pipefail
-              mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-              cat > "$HOME/.ssh/config" <<EOF
-              Host 184.195.165.141
-                User ubuntu
-                IdentityFile $(SSH_KEY_PATH)
-                IdentitiesOnly yes
-                StrictHostKeyChecking no
+              mkdir -p "$HOME/.ssh"
+              chmod 700 "$HOME/.ssh"
 
-              Host 10.20.2.133
-                User ubuntu
-                IdentityFile $(SSH_KEY_PATH)
-                IdentitiesOnly yes
-                ProxyJump ubuntu@184.195.165.141
-                StrictHostKeyChecking no
-              EOF
+              {
+                printf '%s\n' \
+                  "Host 184.195.165.141" \
+                  "    HostName 184.195.165.141" \
+                  "    User ubuntu" \
+                  "    IdentityFile $(SSH_KEY_PATH)" \
+                  "    IdentitiesOnly yes" \
+                  "    StrictHostKeyChecking no" \
+                  "" \
+                  "Host 10.20.2.133" \
+                  "    HostName 10.20.2.133" \
+                  "    User ubuntu" \
+                  "    IdentityFile $(SSH_KEY_PATH)" \
+                  "    IdentitiesOnly yes" \
+                  "    ProxyCommand ssh -F /dev/null -i $(SSH_KEY_PATH) -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -W %h:%p ubuntu@184.195.165.141" \
+                  "    StrictHostKeyChecking no"
+              } > "$HOME/.ssh/config"
               chmod 600 "$HOME/.ssh/config"
 
-              # Show what ssh resolves for the backend, so the log proves the
-              # ProxyJump is in effect for rsync's ssh.
-              echo "===== SSH RESOLUTION FOR BACKEND ====="
-              ssh -G 10.20.2.133 | grep -E '^(hostname|user|proxyjump|proxycommand|identityfile) ' || true
-            displayName: "Write SSH config for backend via bastion (rsync)"
+              echo "===== SSH CONFIGURATION ====="
+              ssh -G 10.20.2.133 | grep -E '^(hostname|user|proxycommand|identityfile) '
+            displayName: "Configure SSH for rsync through bastion"
 
-          - script: |
-              echo "===== PIPELINE SSH ENVIRONMENT ====="
-              echo "User: $(whoami)"
-              echo "HOME: $HOME"
-
-              echo "===== SSH KEY CHECK ====="
-              ls -la "$HOME/.ssh" || true
-              ls -l "$HOME/.ssh/id_ed25519" || true
-
-              KEY="$HOME/.ssh/id_ed25519"
-
-              if [ ! -f "$KEY" ]; then
-                echo "ERROR: Private key not found at $KEY"
-                exit 1
-              fi
-
-              chmod 600 "$KEY"
-
-              echo "===== BASTION CONNECTION ====="
-              ssh -o BatchMode=yes \
-                  -o IdentitiesOnly=yes \
-                  -i "$KEY" \
-                  -o StrictHostKeyChecking=no \
-                  ubuntu@184.195.165.141 "hostname"
-
-              echo "===== BACKEND THROUGH BASTION ====="
-              ssh -vvv \
-                  -o BatchMode=yes \
-                  -o IdentitiesOnly=yes \
-                  -i "$KEY" \
-                  -o StrictHostKeyChecking=no \
-                  -o "ProxyCommand=ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -W %h:%p ubuntu@184.195.165.141" \
-                  ubuntu@10.20.2.133 "hostname"
-            displayName: "Diagnose backend SSH through bastion"
 
           # Runs the playbook and keeps only the PLAY RECAP lines for Stage 4.
           # Those lines contain host names and task counts, with no secrets.
