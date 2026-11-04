@@ -508,7 +508,7 @@ stages:
             displayName: "Publish PLAY RECAP artifact"
             inputs:
               targetPath: "$(Agent.TempDirectory)/play-recap.txt"
-              artifact: "play-recap"
+              artifact: "play-recap-$(System.JobAttempt)"
               publishLocation: "pipeline"
 
           - script: |
@@ -537,14 +537,18 @@ stages:
             displayName: "Checkout repository"
 
           - download: current
-            artifact: "play-recap"
             displayName: "Download PLAY RECAP artifact from Stage 3"
 
           # Parses the recap and the inventory with python3 in isolated mode (-I).
           # Nothing is printed except host names, task counts and the frontend URL.
           - script: |
               set -euo pipefail
-              python3 -I - "$(Pipeline.Workspace)/play-recap/play-recap.txt" "$(Build.SourcesDirectory)/$(ansibleInventory)" <<'PY'
+              # Each job attempt publishes its own artifact (play-recap-<attempt>). Use the
+              # highest attempt, which is the one that succeeded.
+              RECAP_DIR=$(ls -d "$(Pipeline.Workspace)"/play-recap-* | sort -t- -k3,3n | tail -n 1)
+              [ -n "$RECAP_DIR" ] || { echo "##[error]No play-recap artifact found."; exit 1; }
+              echo "Reading $RECAP_DIR"
+              python3 -I - "$RECAP_DIR/play-recap.txt" "$(Build.SourcesDirectory)/$(ansibleInventory)" <<'PY'
               import re
               import sys
 
