@@ -366,6 +366,41 @@ stages:
               done < <(awk '/ansible_host=/ { for (i = 1; i <= NF; i++) if ($i ~ /^ansible_host=/) { sub(/^ansible_host=/, "", $i); print $1, $i } }' "$INV")
             displayName: "Pin SSH host keys (bastion first, then the rest)"
 
+          - script: |
+              echo "===== PIPELINE SSH ENVIRONMENT ====="
+              echo "User: $(whoami)"
+              echo "HOME: $HOME"
+
+              echo "===== SSH KEY CHECK ====="
+              ls -la "$HOME/.ssh" || true
+              ls -l "$HOME/.ssh/id_ed25519" || true
+
+              KEY="$HOME/.ssh/id_ed25519"
+
+              if [ ! -f "$KEY" ]; then
+                echo "ERROR: Private key not found at $KEY"
+                exit 1
+              fi
+
+              chmod 600 "$KEY"
+
+              echo "===== BASTION CONNECTION ====="
+              ssh -o BatchMode=yes \
+                  -o IdentitiesOnly=yes \
+                  -i "$KEY" \
+                  -o StrictHostKeyChecking=no \
+                  ubuntu@184.195.165.141 "hostname"
+
+              echo "===== BACKEND THROUGH BASTION ====="
+              ssh -vvv \
+                  -o BatchMode=yes \
+                  -o IdentitiesOnly=yes \
+                  -i "$KEY" \
+                  -o StrictHostKeyChecking=no \
+                  -o "ProxyCommand=ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -W %h:%p ubuntu@184.195.165.141" \
+                  ubuntu@10.20.2.133 "hostname"
+            displayName: "Diagnose backend SSH through bastion"
+
           # Runs the playbook and keeps only the PLAY RECAP lines for Stage 4.
           # Those lines contain host names and task counts, with no secrets.
           #
